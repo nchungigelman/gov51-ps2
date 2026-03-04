@@ -1,0 +1,136 @@
+---
+title: "ps2.qmd"
+format: html
+editor: visual
+github: https://github.com/nchungigelman/gov51-ps2
+---
+
+```{r}
+library(tidyverse)
+gay <- read_csv("data/raw/gay.csv")
+glimpse(gay)
+n_obs <- nrow(gay)
+n_obs
+n_study <- n_distinct(gay$study)
+n_study
+treat_levels <- sort(unique(gay$treatment))
+treat_levels
+```
+Q1.1: The gay dataset has 69592 observations. The study takes 2 unique values. The treatment conditions are as follows: "No contact", "Recycling Script by Gay Canvasser", "Recycling Script by Straight Canvasser", "Same-Sex Marriage Script by Gay Canvasser", and "Same-Sex Marriage Script by Straight Canvasser".
+
+
+```{r}
+means <- gay %>%
+  filter(study == 1, wave == 1) %>%
+  group_by(treatment) %>%
+  summarize(mean_ssm = mean(ssm, na.rm = TRUE), .groups = "drop") %>%
+  arrange(mean_ssm)
+
+means
+```
+Q1.2: The mean same-sex marriage attitude for each group, rated 1-5 and rounded to the nearest hundredth are as follows: No Contact (3.04); Recyling Script by Gay Canvasser (3.13); Recycling Script by Straight Canvasser (3.01); Same-Sex Marriage Script by Gay Canvasser (3.03); and Same-Sex Marriage Script by Straight Canvasser (3.10). The group with the highest mean attitude towards same-sex marriage is Recycling Script by Gay Canvasser, at 3.13.
+
+```{r}
+sds <- gay %>%
+  filter(study == 1, wave == 1) %>%
+  group_by(treatment) %>%
+  summarize(sd_ssm = sd(ssm, na.rm = TRUE), .groups = "drop") %>%
+  arrange(sd_ssm)
+
+sds
+```
+
+Q1.3: The standard deviation in saem-sex marriage for the treatment groups are as follows: No Contact (1.68); Recyling Script by Gay Canvasser (1.70); Recycling Script by Straight Canvasser (1.68); Same-Sex Marriage Script by Gay Canvasser (1.67); and Same-Sex Marriage Script by Straight Canvasser (1.68). As can be seen, the standard deviation across treatment groups, before the implementation of said treatment, are roughly the same. This is very important in randomized experiments: the whole point of randomziation is to create similar distributions of outcomes across groups, so we can reasonably assume that the only variable taking effect is the treatment.
+
+```{r}
+ggplot(means, aes(y = reorder(treatment, mean_ssm), x = mean_ssm)) +
+  geom_col() +
+  labs(
+    x = "Treatment group",
+    y = "Mean SSM (1–5)",
+    title = "Mean Same-Sex Marriage Support by Treatment: Study 1, Wave 1"
+  )
+```
+Q1.4: I flipped the coordinates to make room for the lengthy titles of each treatment group. Not ideal but best for aesthetics and presentation.
+
+```{r}
+
+d <- gay %>%
+  filter(
+    study == 1,
+    wave == 1,
+    treatment %in% c("Same-Sex Marriage Script by Gay Canvasser", "No Contact")
+  )
+
+
+summary_stats <- d %>%
+  group_by(treatment) %>%
+  summarize(
+    n = n(),
+    mean_ssm = mean(ssm, na.rm = TRUE),
+    sd_ssm = sd(ssm, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+summary_stats
+
+
+m_gay <- summary_stats %>% filter(treatment == "Same-Sex Marriage Script by Gay Canvasser") %>% pull(mean_ssm)
+m_nc  <- summary_stats %>% filter(treatment == "No Contact") %>% pull(mean_ssm)
+
+sd_gay <- summary_stats %>% filter(treatment == "Same-Sex Marriage Script by Gay Canvasser") %>% pull(sd_ssm)
+sd_nc  <- summary_stats %>% filter(treatment == "No Contact") %>% pull(sd_ssm)
+
+
+std_diff <- (m_gay - m_nc) / sqrt((sd_gay^2 + sd_nc^2) / 2)
+std_diff
+```
+
+Q1.5: The mean attitude for the No Contact group is 3.043, with a standard deviation of 1.681. The mean attitude for the Same-Sex Marriage Script by Gay Canvasser Group is 3.025, with a standard deviation of 1.666. As shown, the absolute value of the standardized difference in means between the No Contact and Same Sex Marriage by Gay Canvasser groups is 0.0105. This is well below the threshold of 0.25, which suggests that the treatment groups are well balanced at least at baseline.
+
+```{r}
+d_w2 <- gay %>%
+  filter(
+    study == 1,
+    wave == 2,
+    treatment %in% c("Same-Sex Marriage Script by Gay Canvasser", "No Contact")
+  )
+
+means_w2 <- d_w2 %>%
+  group_by(treatment) %>%
+  summarize(
+    n = n(),
+    mean_ssm = mean(ssm, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+means_w2
+
+diff_w2 <- means_w2 %>%
+  summarize(
+    diff = mean_ssm[treatment == "Same-Sex Marriage Script by Gay Canvasser"] -
+           mean_ssm[treatment == "No Contact"]
+  ) %>%
+  pull(diff)
+
+diff_w2
+```
+Q1.6: The mean same-sex marriage attitude for the No Contact Group, post-treatment, is 3.04. The mean same-sex marriage attitude for the Same-Sex Marriage Script by Gay Canvasser group, again post-treatment, is 3.139. The difference in means is 0.1. That the difference in means post-treatment is 0.1, while the pre-treatment difference was 0.01, suggests that the treatment did have a discernable effect, rather than there simply being pre-treatment differences between the groups at baseline. 
+
+```{r}
+library(tidyverse)
+
+gay_r <- read_csv("data/raw/gayreshaped.csv", show_col_types = FALSE)
+ccap  <- read_csv("data/raw/ccap2012.csv", show_col_types = FALSE)
+
+tibble(
+  dataset = c("gayreshaped", "ccap2012"),
+  n_rows  = c(nrow(gay_r), nrow(ccap)),
+  n_cols  = c(ncol(gay_r), ncol(ccap))
+)
+```
+Q2.1: The gayreshaped data has 11948 observations and 6 columns. The ccap2012 data has 43998 observations and 3 columns.
+
+
+
+
